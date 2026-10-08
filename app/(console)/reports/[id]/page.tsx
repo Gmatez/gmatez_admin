@@ -57,16 +57,18 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="space-y-4">
       <PageHeader title="Report" description={record.id} />
+      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950">
       <StatusBadge value={record.status} />
-      <p className="text-sm">Reason {record.reason}</p>
-      <p className="text-sm">Details {record.details || '—'}</p>
-      <p className="text-sm">Related {record.referenceType ?? '—'} {record.referenceId ?? ''}</p>
+      <p>Reason {record.reason}</p>
+      <p>Details {record.details || '—'}</p>
+      <p>Related {record.referenceType ?? '—'} {record.referenceId ?? ''}</p>
       {record.referenceType === 'call' && record.referenceId ? (
-        <Link className="text-sm text-teal-800 underline" href={`/calls/${record.referenceId}`}>Open call</Link>
+        <Link className="font-medium text-blue-600 underline" href={`/calls/${record.referenceId}`}>Open call</Link>
       ) : null}
-      <p className="text-sm">Reporter <Link className="text-teal-800 underline" href={`/users/${record.reporterId}`}>{record.reporter.profile?.displayName}</Link> · {record.reporter.status}</p>
-      <p className="text-sm">Reported <Link className="text-teal-800 underline" href={`/users/${record.reportedId}`}>{record.reported.profile?.displayName}</Link> · {record.reported.status}</p>
-      <p className="text-sm">Filed {formatWhen(record.createdAt)}</p>
+      <p>Reporter <Link className="font-medium text-blue-600 underline" href={`/users/${record.reporterId}`}>{record.reporter.profile?.displayName}</Link> · {record.reporter.status}</p>
+      <p>Reported <Link className="font-medium text-blue-600 underline" href={`/users/${record.reportedId}`}>{record.reported.profile?.displayName}</Link> · {record.reported.status}</p>
+      <p>Filed {formatWhen(record.createdAt)}</p>
+      </section>
       <div className="flex flex-wrap gap-2">
         {STATUSES.filter((value) => value !== record.status).map((value) => (
           <Button key={value} variant={value === 'DISMISSED' ? 'secondary' : 'primary'} onClick={() => setStatus(value)}>
@@ -75,7 +77,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         ))}
         <Link href={`/users/${record.reportedId}`}><Button variant="danger">Review reported account</Button></Link>
       </div>
-      <section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="font-semibold">Previous actions</h2>
         <ul className="mt-2 space-y-1 text-sm">
           {record.audit.length === 0 ? <li>No audit rows yet.</li> : record.audit.map((row) => <li key={row.id}>{formatWhen(row.createdAt)} · {row.action}</li>)}

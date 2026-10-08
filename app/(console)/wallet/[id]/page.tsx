@@ -43,20 +43,22 @@ export default function WalletDetailPage({ params }: { params: Promise<{ id: str
   const currency = wallet?.currency ?? reconcile.data?.currency ?? 'USD';
   return (
     <div className="space-y-4">
-      <PageHeader title="Wallet" description={id} actions={<Link className="text-sm text-teal-800 underline" href={`/users/${id}`}>Open user</Link>} />
+      <PageHeader title="Wallet" description={id} actions={<Link className="text-sm font-medium text-blue-600 underline" href={`/users/${id}`}>Open user</Link>} />
+      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950">
       {wallet ? (
-        <p className="text-sm">
+        <p>
           Available {formatMoney(wallet.availableBalanceCents, currency)} · Held {formatMoney(wallet.heldBalanceCents, currency)}
         </p>
       ) : (
-        <p className="text-sm">Wallet row was not found for this id.</p>
+        <p>Wallet row was not found for this id.</p>
       )}
       {reconcile.data ? (
-        <p className="text-sm">
+        <p>
           <StatusBadge value={reconcile.data.ok ? 'ok' : 'error'} /> Ledger net {formatMoney(reconcile.data.ledgerNetCents, currency)}
           {reconcile.data.issues.length ? ` · ${reconcile.data.issues.join(', ')}` : ''}
         </p>
       ) : null}
+      </section>
       {ledger.data ? (
         <DataTable
           rows={ledger.data.items}

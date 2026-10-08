@@ -41,11 +41,16 @@ type Device = {
 };
 
 const schema = z.object({
-  userId: z.string().uuid(),
+  audience: z.enum(['USER', 'ALL_USERS', 'ALL_HOSTS']),
+  userId: z.string(),
   title: z.string().min(1).max(80),
   body: z.string().min(1).max(500),
   deepLink: z.string().regex(/^\/(?!\/).*/, 'Use an in-app path such as /wallet').or(z.literal('')),
   type: z.string().regex(/^[a-z0-9_]{2,40}$/),
+}).superRefine((value, ctx) => {
+  if (value.audience === 'USER' && !z.string().uuid().safeParse(value.userId).success) {
+    ctx.addIssue({ code: 'custom', message: 'Enter a user id', path: ['userId'] });
+  }
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -74,17 +79,22 @@ export default function NotificationsPage() {
   });
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { userId: '', title: '', body: '', deepLink: '', type: 'system' },
+    defaultValues: { audience: 'USER', userId: '', title: '', body: '', deepLink: '', type: 'system' },
   });
   const send = useMutation({
     mutationFn: (values: FormValues) =>
-      apiSend('/admin/notifications', 'POST', {
+      apiSend<{ delivery?: string }>('/admin/notifications', 'POST', {
         ...values,
+        userId: values.audience === 'USER' ? values.userId : undefined,
         deepLink: values.deepLink || undefined,
         idempotencyKey: key,
       }),
-    onSuccess: () => {
-      toast.success('Notification queued');
+    onSuccess: (result) => {
+      if (result.delivery === 'CONFIG_REQUIRED') {
+        toast.message('Saved in app. Push delivery is CONFIG_REQUIRED until Firebase credentials are set.');
+      } else {
+        toast.success('Notification queued');
+      }
       setPreview(null);
       setKey(createIdempotencyKey());
       form.reset();
@@ -95,8 +105,14 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-8">
       <PageHeader title="Notifications" description="Delivery state is PENDING until the push worker reports SENT or FAILED. Tokens are masked." />
-      <form className="grid max-w-xl gap-3" onSubmit={form.handleSubmit((values) => setPreview(values))}>
+      <form className="grid max-w-xl gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950" onSubmit={form.handleSubmit((values) => setPreview(values))}>
         <h2 className="font-semibold">Send a notification</h2>
+        <Label htmlFor="audience">Audience</Label>
+        <Select id="audience" {...form.register('audience')}>
+          <option value="USER">Specific user</option>
+          <option value="ALL_USERS">All active users</option>
+          <option value="ALL_HOSTS">All active hosts</option>
+        </Select>
         <Label htmlFor="recipient">Recipient user id</Label>
         <Input id="recipient" {...form.register('userId')} />
         <Label htmlFor="title">Title</Label>
@@ -107,7 +123,7 @@ export default function NotificationsPage() {
         <Input id="link" placeholder="/wallet" {...form.register('deepLink')} />
         <Button type="submit">Preview</Button>
       </form>
-      <div className="flex flex-wrap gap-2">
+      <div className="filter-bar">
         <Select aria-label="Delivery status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>
           <option value="">Any delivery</option>
           <option value="PENDING">Pending</option>
@@ -138,7 +154,7 @@ export default function NotificationsPage() {
       ) : null}
       <section>
         <h2 className="mb-2 font-semibold">Devices</h2>
-        <p className="mb-2 text-sm text-stone-500">Stored registrations only. There is no last-seen or revoke flag beyond the token row.</p>
+        <p className="mb-2 text-sm text-slate-500">Stored registrations only. There is no last-seen or revoke flag beyond the token row.</p>
         {devices.data && devices.data.items.length > 0 ? (
           <DataTable
             rows={devices.data.items}
@@ -151,7 +167,7 @@ export default function NotificationsPage() {
               { key: 'updated', header: 'Updated', cell: (row) => formatWhen(row.updatedAt) },
             ]}
           />
-        ) : <p className="text-sm text-stone-500">No devices on this page.</p>}
+        ) : <p className="text-sm text-slate-500">No devices on this page.</p>}
       </section>
       <ConfirmDialog
         open={preview !== null}

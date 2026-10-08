@@ -24,9 +24,10 @@ export default function PayoutsPage() {
     <div>
       <PageHeader
         title="Payouts"
-        description="Marking a payout completed records the operational status. It does not send money: the payout rail is PAYOUT_PROVIDER_CONFIG_REQUIRED."
+        description="Host withdrawals debit the internal wallet only. RazorpayX is CONFIG_REQUIRED, so this screen cannot mark a payout completed."
       />
-      <Select className="mb-4" aria-label="Payout status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>
+      <div className="filter-bar">
+      <Select aria-label="Payout status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>
         <option value="">All statuses</option>
         <option value="REQUESTED">Requested</option>
         <option value="PROCESSING">Processing</option>
@@ -34,6 +35,7 @@ export default function PayoutsPage() {
         <option value="REJECTED">Rejected</option>
         <option value="FAILED">Failed</option>
       </Select>
+      </div>
       {query.isLoading ? <PageSkeleton /> : null}
       {query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}
       {query.data?.items.length === 0 ? <EmptyState title="No payouts" body="No payout requests match this filter." /> : null}

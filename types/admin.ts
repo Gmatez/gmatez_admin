@@ -142,6 +142,10 @@ export type HostRecord = {
   submittedAt: string;
   reviewedAt: string | null;
   reviewedById: string | null;
+  idProofType?: string | null;
+  idProofLast4?: string | null;
+  idProofMime?: string | null;
+  idProofUpdatedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -222,10 +226,17 @@ export type PaymentRow = {
   id: string;
   userId: string;
   amountCents: number;
+  creditCents?: number | null;
   currency: string;
   status: string;
   provider: string;
   providerPaymentId: string;
+  providerCaptureId?: string | null;
+  refundStatus?: string;
+  providerRefundId?: string | null;
+  refundedAmountCents?: number;
+  reconciliationStatus?: string;
+  capturedAt?: string | null;
   failureReason: string | null;
   createdAt: string;
   updatedAt: string;
@@ -253,6 +264,9 @@ export type PayoutRules = {
   minimumAmountCents: number;
   payoutRailStatus: 'CONFIG_REQUIRED';
   payoutRailCode: 'PAYOUT_PROVIDER_CONFIG_REQUIRED';
+  payoutRail?: 'RAZORPAYX';
+  moneyTransferred?: false;
+  externalTransferStatus?: 'NOT_TRANSFERRED';
 };
 
 export type PayoutRow = {

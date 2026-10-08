@@ -39,12 +39,12 @@ export function ConfirmDialog({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-stone-950/50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(32rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-stone-200 bg-white p-5 shadow-lg dark:border-stone-700 dark:bg-stone-950">
-          <Dialog.Title className="text-lg font-semibold text-stone-950 dark:text-stone-50">
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-900/40" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(32rem,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-950">
+          <Dialog.Title className="text-lg font-semibold text-slate-900 dark:text-slate-50">
             {title}
           </Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-300">
+          <Dialog.Description className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-500 dark:text-slate-300">
             {description}
           </Dialog.Description>
           {requireReason ? (

@@ -6,7 +6,7 @@ import { use, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { apiGet, apiSend } from '@/lib/api/client';
 import { errorText } from '@/lib/errors';
-import { formatWhen } from '@/lib/format';
+import { formatActivity, formatWhen } from '@/lib/format';
 import { formatMoney } from '@/lib/money';
 import { createIdempotencyKey } from '@/lib/utils';
 import type { AdminUser, Reconciliation } from '@/types/admin';
@@ -147,22 +147,23 @@ function UserDetailView({ id }: { id: string }) {
       <section className="grid gap-3 md:grid-cols-3">
         <Info label="Status" value={<StatusBadge value={record.status} />} />
         <Info label="Created" value={formatWhen(record.createdAt)} />
-        <Info label="Last active" value={formatWhen(record.profile?.lastActiveAt)} />
+        <Info label="Last active" value={formatActivity(record.profile?.lastActiveAt)} />
+        <Info label="Operating as" value={record.hostProfile?.status === 'ACTIVE' ? 'Host' : 'User'} />
       </section>
       {record.hostProfile ? (
-        <section className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <h2 className="font-semibold">Host profile</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             <StatusBadge value={record.hostProfile.status} />
             <StatusBadge value={record.hostProfile.availability} />
             <StatusBadge value={record.hostProfile.verificationStatus} />
           </div>
-          <Link className="mt-3 inline-block text-sm text-teal-800 underline" href={`/hosts/${id}`}>
+          <Link className="mt-3 inline-block text-sm font-medium text-blue-600 underline" href={`/hosts/${id}`}>
             Open host review
           </Link>
         </section>
       ) : null}
-      <section className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="font-semibold">Wallet</h2>
         <p className="mt-2 text-sm">
           Available {record.wallet ? formatMoney(record.wallet.availableBalanceCents, currency) : '—'} · Held{' '}
@@ -203,9 +204,9 @@ function UserDetailView({ id }: { id: string }) {
       <RecordList title="Calls" rows={record.calls.map((call) => ({ id: call.id, href: `/calls/${call.id}`, label: `${call.callType} · ${call.status}` }))} />
       <RecordList title="Payments" rows={record.payments.map((payment) => ({ id: payment.id, href: `/payments/${payment.id}`, label: `${payment.status} · ${formatMoney(payment.amountCents, payment.currency)}` }))} />
       <RecordList title="Reports" rows={record.reports.map((report) => ({ id: report.id, href: `/reports/${report.id}`, label: `${report.reason} · ${report.status}` }))} />
-      <section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="mb-2 font-semibold">Blocks</h2>
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-slate-500">
           Initiated {blocks.data?.initiated.length ?? 0}. Received {blocks.data?.received.length ?? 0}. Blocks are shown for review and are not edited here.
         </p>
       </section>
@@ -224,30 +225,42 @@ function UserDetailView({ id }: { id: string }) {
           if (action) statusMutation.mutate({ status: action, reason: note });
         }}
       />
-      <ConfirmDialog
-        open={adjustOpen}
-        title="Adjust wallet"
-        description={`Post a signed ledger adjustment in ${currency}. Positive credits the user. Negative debits available balance. This is not reversible except by another audited adjustment.`}
-        confirmLabel="Post adjustment"
-        destructive
-        pending={adjust.isPending}
-        onOpenChange={setAdjustOpen}
-        onConfirm={() => {
-          if (reason.trim().length < 3) {
-            toast.error('Enter a reason of at least 3 characters in the amount form.');
-            return;
-          }
-          adjust.mutate();
-        }}
-      />
       {adjustOpen ? (
-        <div className="fixed bottom-4 right-4 z-50 w-80 rounded-lg border border-stone-200 bg-white p-4 shadow dark:border-stone-700 dark:bg-stone-950">
-          <Label htmlFor="adjust-amount">Amount in major units</Label>
-          <Input id="adjust-amount" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="10.00" />
-          <div className="mt-2">
-            <Label htmlFor="adjust-reason">Reason</Label>
-            <Input id="adjust-reason" value={reason} onChange={(event) => setReason(event.target.value)} />
-          </div>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4">
+          <form
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-950"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (reason.trim().length < 3) {
+                toast.error('Enter a reason of at least 3 characters.');
+                return;
+              }
+              adjust.mutate();
+            }}
+          >
+            <h2 className="text-lg font-semibold">Adjust wallet</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Post a signed ledger adjustment in {currency}. Positive credits the user. A wallet is created if this account does not have one yet.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <Label htmlFor="adjust-amount">Amount in major units</Label>
+                <Input id="adjust-amount" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="10.00" />
+              </div>
+              <div>
+                <Label htmlFor="adjust-reason">Reason</Label>
+                <Input id="adjust-reason" value={reason} onChange={(event) => setReason(event.target.value)} />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="secondary" type="button" onClick={() => setAdjustOpen(false)} disabled={adjust.isPending}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={adjust.isPending}>
+                {adjust.isPending ? 'Working…' : 'Post adjustment'}
+              </Button>
+            </div>
+          </form>
         </div>
       ) : null}
     </div>
@@ -256,8 +269,8 @@ function UserDetailView({ id }: { id: string }) {
 
 function Info({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-lg border border-stone-200 p-3 dark:border-stone-800">
-      <p className="text-xs uppercase text-stone-500">{label}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <p className="text-xs uppercase text-slate-500">{label}</p>
       <div className="mt-1 text-sm">{value}</div>
     </div>
   );
@@ -271,13 +284,13 @@ function RecordList({
   rows: Array<{ id: string; href: string; label: string }>;
 }) {
   return (
-    <section>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
       <h2 className="mb-2 font-semibold">{title}</h2>
-      {rows.length === 0 ? <p className="text-sm text-stone-500">None recorded.</p> : null}
+      {rows.length === 0 ? <p className="text-sm text-slate-500">None recorded.</p> : null}
       <ul className="space-y-1 text-sm">
         {rows.slice(0, 20).map((row) => (
           <li key={row.id}>
-            <Link className="text-teal-800 underline" href={row.href}>
+            <Link className="font-medium text-blue-600 underline" href={row.href}>
               {row.label}
             </Link>
           </li>

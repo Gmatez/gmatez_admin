@@ -11,6 +11,8 @@ import { DataTable } from '@/components/tables/data-table';
 import { StatusBadge } from '@/components/status/status-badge';
 import { PageHeader, Pagination } from '@/components/shared/page';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/shared/states';
+import { PersonCell } from '@/components/shared/person';
+import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/fields';
 
 export default function HostsPage() {
@@ -40,8 +42,8 @@ export default function HostsPage() {
         title="Hosts"
         description="Review applications and operate the host state machine. Availability filters are live host state, not a separate approval status."
       />
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Input aria-label="Search hosts" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone, email" className="max-w-xs" />
+      <div className="filter-bar">
+        <Input aria-label="Search hosts" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone, email" className="filter-search" />
         <Select aria-label="Host status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>
           <option value="">All review states</option>
           <option value="PENDING_REVIEW">Pending</option>
@@ -70,7 +72,24 @@ export default function HostsPage() {
       </div>
       {query.isLoading ? <PageSkeleton /> : null}
       {query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}
-      {query.data?.items.length === 0 ? <EmptyState title="No hosts" body="No host profiles match these filters." /> : null}
+      {query.data?.items.length === 0 ? (
+        <EmptyState
+          title="No hosts found"
+          body="There are no hosts matching your current filters."
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setQ('');
+                setParams({ q: null, status: null, availability: null, verificationStatus: null, incomplete: null }, true);
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
+      ) : null}
       {query.data && query.data.items.length > 0 ? (
         <>
           <DataTable
@@ -78,7 +97,7 @@ export default function HostsPage() {
             rowKey={(row) => row.userId}
             onRow={(row) => router.push(`/hosts/${row.userId}`)}
             columns={[
-              { key: 'name', header: 'Name', cell: (row) => row.user.profile?.displayName ?? '—' },
+              { key: 'name', header: 'Name', cell: (row) => <PersonCell name={row.user.profile?.displayName ?? '—'} /> },
               { key: 'phone', header: 'Phone', cell: (row) => row.user.phone ?? '—' },
               { key: 'status', header: 'Host status', cell: (row) => <StatusBadge value={row.status} /> },
               { key: 'verify', header: 'Verification', cell: (row) => <StatusBadge value={row.verificationStatus} /> },

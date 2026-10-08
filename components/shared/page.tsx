@@ -13,11 +13,11 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-stone-950 dark:text-stone-50">
+        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-slate-50">
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-600 dark:text-stone-400">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">
             {description}
           </p>
         ) : null}
@@ -31,18 +31,25 @@ export function Metric({
   label,
   value,
   hint,
+  icon,
 }: {
   label: string;
   value: string;
-  hint?: string;
+  hint?: ReactNode;
+  icon?: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-950">
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums text-stone-950 dark:text-stone-50">
+    <div className="gm-metric rounded-2xl border border-brand-100 bg-gradient-to-br from-white to-brand-50 p-5 shadow-sm dark:border-slate-800 dark:from-slate-950 dark:to-slate-900">
+      {icon ? (
+        <div className="mb-4 grid h-11 w-11 place-items-center rounded-2xl bg-brand-600 text-white shadow-sm [&>svg]:h-5 [&>svg]:w-5">
+          {icon}
+        </div>
+      ) : null}
+      <p className="text-[13px] font-medium text-slate-500">{label}</p>
+      <p className="mt-2 text-[28px] font-bold leading-none tabular-nums tracking-tight text-slate-900 dark:text-slate-50">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-stone-500">{hint}</p> : null}
+      {hint ? <div className="mt-3 text-xs leading-5 text-slate-500">{hint}</div> : null}
     </div>
   );
 }
@@ -60,7 +67,7 @@ export function Pagination({
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 text-sm text-stone-600 dark:text-stone-400">
+    <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-sm text-slate-500 dark:text-slate-400">
       <p>
         Page {page} of {pages}
         {total >= 0 ? ` · ${total} records` : ''}

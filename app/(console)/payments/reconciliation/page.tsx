@@ -26,21 +26,19 @@ export default function ReconciliationPage() {
         description="Diagnostic only. This compares the wallet cache, ledger, and active call holds. It does not change balances."
       />
       <form
-        className="mb-4 flex flex-wrap items-end gap-2"
+        className="filter-bar"
         onSubmit={(event) => {
           event.preventDefault();
           setActive(userId.trim());
         }}
       >
-        <div>
-          <Label htmlFor="user-id">User id</Label>
-          <Input id="user-id" value={userId} onChange={(event) => setUserId(event.target.value)} className="w-80" />
-        </div>
-        <Button type="submit">Check</Button>
+        <Label htmlFor="user-id">User id</Label>
+        <Input id="user-id" value={userId} onChange={(event) => setUserId(event.target.value)} placeholder="User id" />
+        <Button type="submit" className="h-9">Check</Button>
       </form>
       {query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}
       {query.data ? (
-        <section className="space-y-2 text-sm">
+        <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <StatusBadge value={query.data.ok ? 'ok' : 'error'} />
           <p>Available {formatMoney(query.data.availableBalanceCents, query.data.currency)}</p>
           <p>Held {formatMoney(query.data.heldBalanceCents, query.data.currency)}</p>

@@ -22,9 +22,9 @@ type PayoutDetail = PayoutRow & {
 };
 
 const NEXT: Record<string, string[]> = {
-  REQUESTED: ['PROCESSING', 'COMPLETED', 'REJECTED', 'FAILED'],
-  PROCESSING: ['COMPLETED', 'REJECTED', 'FAILED'],
-  FAILED: ['PROCESSING', 'COMPLETED', 'REJECTED'],
+  REQUESTED: ['PROCESSING', 'REJECTED', 'FAILED'],
+  PROCESSING: ['REJECTED', 'FAILED'],
+  FAILED: ['PROCESSING', 'REJECTED'],
 };
 
 export default function PayoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,13 +58,18 @@ export default function PayoutDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="space-y-4">
       <PageHeader title="Payout" description={record.id} />
+      <section className="space-y-2 rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950">
       <StatusBadge value={record.status} />
-      <p className="text-sm">Host <Link className="text-teal-800 underline" href={`/hosts/${record.userId}`}>{record.user.profile?.displayName ?? record.user.email}</Link></p>
-      <p className="text-sm">Amount {formatMoney(record.amountCents)}</p>
-      <p className="text-sm">Destination {record.destination ? `${record.destination.type} · ${JSON.stringify(record.destination.detailsMasked)}` : 'None'}</p>
-      <p className="text-sm">Requested {formatWhen(record.createdAt)} · Processed {formatWhen(record.processedAt)}</p>
-      <p className="text-sm">Failure {record.failureReason ?? '—'}</p>
-      <p className="text-sm text-amber-800">{record.rules.payoutRailCode}. Completing a payout does not call a bank or UPI provider.</p>
+      <p>Host <Link className="font-medium text-blue-600 underline" href={`/hosts/${record.userId}`}>{record.user.profile?.displayName ?? record.user.email}</Link></p>
+      <p>Amount {formatMoney(record.amountCents)}</p>
+      <p>Destination {record.destination ? `${record.destination.type} · ${JSON.stringify(record.destination.detailsMasked)}` : 'None'}</p>
+      <p>Requested {formatWhen(record.createdAt)} · Processed {formatWhen(record.processedAt)}</p>
+      <p>Failure {record.failureReason ?? '—'}</p>
+      <p className="text-amber-800">
+        {record.rules.payoutRail ?? 'RAZORPAYX'} is {record.rules.payoutRailStatus}. No bank or UPI transfer is sent.
+        External transfer status: {record.rules.externalTransferStatus ?? 'NOT_TRANSFERRED'}.
+      </p>
+      </section>
       <div className="flex flex-wrap gap-2">
         {actions.map((status) => (
           <Button key={status} variant={status === 'REJECTED' || status === 'FAILED' ? 'danger' : 'primary'} onClick={() => setNext(status)}>
@@ -72,7 +77,7 @@ export default function PayoutDetailPage({ params }: { params: Promise<{ id: str
           </Button>
         ))}
       </div>
-      <section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="mb-2 font-semibold">Audit</h2>
         <ul className="space-y-1 text-sm">
           {record.audit.map((row) => (
@@ -83,7 +88,7 @@ export default function PayoutDetailPage({ params }: { params: Promise<{ id: str
       <ConfirmDialog
         open={next !== null}
         title={`Mark payout ${next ?? ''}`}
-        description="Rejecting or failing a payout credits the amount back to the host wallet. Completing it only updates status."
+        description="Rejecting or failing a payout credits the amount back to the host wallet. This screen cannot mark a payout completed, because no external transfer has been made."
         confirmLabel="Confirm"
         destructive={next === 'REJECTED' || next === 'FAILED'}
         requireReason={next === 'REJECTED' || next === 'FAILED'}

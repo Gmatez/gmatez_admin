@@ -22,7 +22,7 @@ export default function ReportsPage() {
   return (
     <div>
       <PageHeader title="Reports" description="Trust and safety queue. Actions are the report statuses the backend accepts." />
-      <div className="mb-4 flex gap-2">
+      <div className="filter-bar">
         <Select aria-label="Report status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>
           <option value="">All statuses</option>
           <option value="OPEN">Open</option>

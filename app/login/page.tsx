@@ -44,17 +44,17 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-stone-950 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-800 via-brand-600 to-brand-700 px-4">
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-stone-900"
+        className="w-full max-w-md rounded-2xl border border-white/40 bg-white p-7 shadow-xl dark:border-slate-700 dark:bg-slate-950"
         noValidate
       >
-        <p className="text-xs font-medium uppercase tracking-wide text-teal-800">Gmatez</p>
-        <h1 className="mt-1 text-2xl font-semibold text-stone-950 dark:text-stone-50">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">Gmatez</p>
+        <h1 className="mt-1 text-[28px] font-bold text-slate-900 dark:text-slate-50">
           Operations sign in
         </h1>
-        <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
           Admin accounts use the existing email and password session. Phone OTP is the member app.
         </p>
         <div className="mt-5 space-y-3">

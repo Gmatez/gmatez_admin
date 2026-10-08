@@ -14,7 +14,7 @@ import { PageHeader } from '@/components/shared/page';
 import { ErrorState, PageSkeleton } from '@/components/shared/states';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Button } from '@/components/ui/button';
-import { Label, Textarea } from '@/components/ui/fields';
+import { Input, Label, Textarea } from '@/components/ui/fields';
 
 const VERIFICATION = ['NOT_REQUIRED', 'PENDING', 'VERIFIED', 'REJECTED'] as const;
 
@@ -77,9 +77,11 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
         <StatusBadge value={record.status} />
         <StatusBadge value={record.availability} />
         <StatusBadge value={record.verificationStatus} />
+        <span className="text-sm text-slate-500">Operating as {record.status === 'ACTIVE' ? 'Host' : 'User'}</span>
       </div>
+      <HostDocuments id={id} record={record} />
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <h2 className="font-semibold">Applicant</h2>
           <p className="mt-2 text-sm">Account {record.user.status}</p>
           <p className="text-sm">Bio: {record.applicationBio || record.user.profile?.bio || '—'}</p>
@@ -89,7 +91,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
           </p>
           <p className="text-sm">Voice {record.voiceEnabled ? 'enabled' : 'off'} · Video {record.videoEnabled ? 'enabled' : 'off'}</p>
         </article>
-        <article className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <h2 className="font-semibold">Completeness {record.completeness?.percentage ?? 0}%</h2>
           <p className="mt-2 text-sm">{record.completeness?.isComplete ? 'Ready for approval.' : 'Missing fields block approval.'}</p>
           <ul className="mt-2 list-disc pl-5 text-sm">
@@ -97,7 +99,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
           </ul>
         </article>
       </section>
-      <section className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="font-semibold">Agreements</h2>
         {record.agreementAcceptances.length === 0 ? <p className="mt-2 text-sm">None accepted.</p> : null}
         <ul className="mt-2 space-y-1 text-sm">
@@ -107,11 +109,11 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-xs text-stone-500">
+        <p className="mt-2 text-xs text-slate-500">
           Required: {(record.completeness?.requiredAgreements ?? []).map((item) => `${item.agreementType} ${item.version}`).join(', ') || '—'}
         </p>
       </section>
-      <section className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="font-semibold">Review notes</h2>
         <p className="mt-2 text-sm">Applicant-facing: {record.reviewNote ?? '—'}</p>
         <p className="text-sm">Internal: {record.internalNote ?? '—'}</p>
@@ -138,7 +140,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
             </Button>
           ))}
         </div>
-        <p className="mt-3 text-xs text-stone-500">
+        <p className="mt-3 text-xs text-slate-500">
           Allowed from {record.status}: {transitions.join(', ') || 'none'}. The API rejects any other transition.
         </p>
       </section>
@@ -177,4 +179,76 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
       />
     </div>
   );
+}
+
+function HostDocuments({ id, record }: { id: string; record: HostRecord }) {
+  const client = useQueryClient();
+  const [proofType, setProofType] = useState(record.idProofType ?? 'AADHAAR');
+  const [last4, setLast4] = useState(record.idProofLast4 ?? '');
+  const [pending, setPending] = useState<'avatar' | 'proof' | null>(null);
+  const avatar = record.user.profile?.avatarUrl;
+
+  async function upload(kind: 'avatar' | 'id-proof', file: File) {
+    const dataBase64 = await readBase64(file);
+    setPending(kind === 'avatar' ? 'avatar' : 'proof');
+    try {
+      await apiSend(`/admin/hosts/${id}/${kind}`, 'POST', {
+        mime: file.type,
+        dataBase64,
+        ...(kind === 'id-proof' ? { idProofType: proofType, idProofLast4: last4 } : {}),
+      });
+      toast.success(kind === 'avatar' ? 'Profile image stored' : 'ID proof stored');
+      void client.invalidateQueries({ queryKey: ['host', id] });
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  return (
+    <section className="grid gap-4 lg:grid-cols-2">
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <h2 className="font-semibold">Profile</h2>
+        <p className="mt-2 text-sm">{record.user.profile?.displayName ?? '—'} · {record.user.phone ?? 'No phone'} · {record.user.email}</p>
+        <p className="text-sm">Gender {record.user.profile?.gender ?? '—'} · {record.user.profile?.country ?? 'No location'}</p>
+        {avatar ? <img src={avatar} alt="" className="mt-3 h-16 w-16 rounded-full object-cover" /> : <p className="mt-3 text-sm text-slate-500">No public avatar URL.</p>}
+        <img src={`/api/proxy/admin/hosts/${id}/avatar`} alt="" className="mt-3 h-16 w-16 rounded-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+        <Label htmlFor="avatar-file">Replace profile image</Label>
+        <Input id="avatar-file" type="file" accept="image/jpeg,image/png,image/webp" disabled={pending !== null} onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void upload('avatar', file);
+        }} />
+      </article>
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <h2 className="font-semibold">ID proof</h2>
+        <p className="mt-2 text-sm">{record.idProofType ?? 'None'} {record.idProofLast4 ? `· ending ${record.idProofLast4}` : ''}</p>
+        <p className="text-sm">Verification <StatusBadge value={record.verificationStatus} /> {record.idProofUpdatedAt ? `· updated ${formatWhen(record.idProofUpdatedAt)}` : ''}</p>
+        {record.idProofMime ? <img src={`/api/proxy/admin/hosts/${id}/id-proof`} alt="ID proof" className="mt-3 max-h-40 rounded-lg border border-slate-200" /> : null}
+        <div className="mt-3 grid gap-2">
+          <Label htmlFor="proof-type">ID proof type</Label>
+          <Input id="proof-type" value={proofType} onChange={(event) => setProofType(event.target.value)} />
+          <Label htmlFor="proof-last4">Last 4 digits</Label>
+          <Input id="proof-last4" value={last4} onChange={(event) => setLast4(event.target.value)} maxLength={4} />
+          <Label htmlFor="proof-file">Upload or replace ID proof</Label>
+          <Input id="proof-file" type="file" accept="image/jpeg,image/png,image/webp" disabled={pending !== null} onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void upload('id-proof', file);
+          }} />
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function readBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = String(reader.result ?? '');
+      resolve(value.slice(value.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }

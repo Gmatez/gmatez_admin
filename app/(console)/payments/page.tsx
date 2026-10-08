@@ -12,6 +12,7 @@ import { DataTable } from '@/components/tables/data-table';
 import { StatusBadge } from '@/components/status/status-badge';
 import { PageHeader, Pagination } from '@/components/shared/page';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/shared/states';
+import { DateFilter } from '@/components/shared/filter-bar';
 import { Input, Select } from '@/components/ui/fields';
 import { Button } from '@/components/ui/button';
 
@@ -42,8 +43,8 @@ export default function PaymentsPage() {
           </Link>
         }
       />
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Input aria-label="Search payments" defaultValue={params.get('q') ?? ''} placeholder="Payment id or provider reference" onBlur={(e) => setParams({ q: e.target.value || null }, true)} />
+      <div className="filter-bar">
+        <Input className="filter-search" aria-label="Search payments" defaultValue={params.get('q') ?? ''} placeholder="Payment id or provider reference" onBlur={(e) => setParams({ q: e.target.value || null }, true)} />
         <Select aria-label="Payment status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>
           <option value="">All statuses</option>
           <option value="PENDING">Pending</option>
@@ -53,8 +54,8 @@ export default function PaymentsPage() {
           <option value="CANCELLED">Cancelled</option>
         </Select>
         <Input aria-label="Provider" defaultValue={params.get('provider') ?? ''} placeholder="Provider" onBlur={(e) => setParams({ provider: e.target.value || null }, true)} />
-        <Input aria-label="From" type="date" value={params.get('from') ?? ''} onChange={(e) => setParams({ from: e.target.value || null }, true)} />
-        <Input aria-label="To" type="date" value={params.get('to') ?? ''} onChange={(e) => setParams({ to: e.target.value || null }, true)} />
+        <DateFilter label="From" aria-label="From" value={params.get('from') ?? ''} onChange={(e) => setParams({ from: e.target.value || null }, true)} />
+        <DateFilter label="To" aria-label="To" value={params.get('to') ?? ''} onChange={(e) => setParams({ to: e.target.value || null }, true)} />
       </div>
       {query.isLoading ? <PageSkeleton /> : null}
       {query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}

@@ -17,6 +17,7 @@ type Banner = {
   id: string;
   title: string;
   subtitle: string;
+  imageUrl: string | null;
   audience: string;
   isActive: boolean;
   priority: number;
@@ -26,6 +27,7 @@ type Banner = {
 const schema = z.object({
   title: z.string().min(2).max(80),
   subtitle: z.string().max(200).optional(),
+  imageUrl: z.union([z.literal(''), z.string().url().max(500)]).optional(),
   audience: z.enum(['ALL', 'USER', 'HOST']),
   deepLink: z.string().max(120).optional(),
   priority: z.coerce.number().int().min(0),
@@ -41,10 +43,16 @@ export default function BannersPage() {
   });
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { title: '', subtitle: '', audience: 'ALL', deepLink: '', priority: 0 },
+    defaultValues: { title: '', subtitle: '', imageUrl: '', audience: 'ALL', deepLink: '', priority: 0 },
   });
   const create = useMutation({
-    mutationFn: (values: Values) => apiSend('/admin/banners', 'POST', values),
+    mutationFn: (values: Values) =>
+      apiSend('/admin/banners', 'POST', {
+        ...values,
+        imageUrl: values.imageUrl || undefined,
+        subtitle: values.subtitle || undefined,
+        deepLink: values.deepLink || undefined,
+      }),
     onSuccess: () => {
       toast.success('Banner created');
       form.reset();
@@ -60,11 +68,13 @@ export default function BannersPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Banners" description="Home-screen banners served by the existing admin banner API." />
-      <form className="grid max-w-lg gap-2" onSubmit={form.handleSubmit((values) => create.mutate(values))}>
+      <form className="grid max-w-lg gap-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950" onSubmit={form.handleSubmit((values) => create.mutate(values))}>
         <Label htmlFor="banner-title">Title</Label>
         <Input id="banner-title" {...form.register('title')} />
         <Label htmlFor="banner-sub">Subtitle</Label>
         <Input id="banner-sub" {...form.register('subtitle')} />
+        <Label htmlFor="banner-image">Image URL</Label>
+        <Input id="banner-image" placeholder="https://…" {...form.register('imageUrl')} />
         <Label htmlFor="banner-audience">Audience</Label>
         <Select id="banner-audience" {...form.register('audience')}>
           <option value="ALL">All</option>
@@ -79,8 +89,8 @@ export default function BannersPage() {
       {banners.error ? <ErrorState error={banners.error} onRetry={() => banners.refetch()} /> : null}
       <ul className="space-y-2">
         {(banners.data ?? []).map((banner) => (
-          <li key={banner.id} className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-sm dark:border-stone-800">
-            <span>{banner.title} · {banner.audience}</span>
+          <li key={banner.id} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <span>{banner.title} · {banner.audience}{banner.imageUrl ? ' · image' : ''}</span>
             <span className="flex items-center gap-2">
               <StatusBadge value={banner.isActive ? 'ACTIVE' : 'DISABLED'} />
               <Button size="sm" variant="secondary" onClick={() => toggle.mutate(banner)} disabled={toggle.isPending}>

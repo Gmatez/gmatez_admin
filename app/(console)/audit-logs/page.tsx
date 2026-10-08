@@ -8,6 +8,7 @@ import { useUrlFilters } from '@/hooks/use-url-filters';
 import { DataTable } from '@/components/tables/data-table';
 import { PageHeader, Pagination } from '@/components/shared/page';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/shared/states';
+import { DateFilter } from '@/components/shared/filter-bar';
 import { Input } from '@/components/ui/fields';
 
 export default function AuditPage() {
@@ -32,13 +33,13 @@ export default function AuditPage() {
         title="Audit logs"
         description="Read only. Rows are written when an admin action succeeds. Failed attempts are not stored."
       />
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="filter-bar">
         <Input aria-label="Admin id" placeholder="Admin id" defaultValue={params.get('actorId') ?? ''} onBlur={(e) => setParams({ actorId: e.target.value || null }, true)} />
         <Input aria-label="Action" placeholder="Action" defaultValue={params.get('action') ?? ''} onBlur={(e) => setParams({ action: e.target.value || null }, true)} />
         <Input aria-label="Entity type" placeholder="Entity type" defaultValue={params.get('targetType') ?? ''} onBlur={(e) => setParams({ targetType: e.target.value || null }, true)} />
         <Input aria-label="Entity id" placeholder="Entity id" defaultValue={params.get('targetId') ?? ''} onBlur={(e) => setParams({ targetId: e.target.value || null }, true)} />
-        <Input aria-label="From" type="date" value={params.get('from') ?? ''} onChange={(e) => setParams({ from: e.target.value || null }, true)} />
-        <Input aria-label="To" type="date" value={params.get('to') ?? ''} onChange={(e) => setParams({ to: e.target.value || null }, true)} />
+        <DateFilter label="From" aria-label="From" value={params.get('from') ?? ''} onChange={(e) => setParams({ from: e.target.value || null }, true)} />
+        <DateFilter label="To" aria-label="To" value={params.get('to') ?? ''} onChange={(e) => setParams({ to: e.target.value || null }, true)} />
       </div>
       {query.isLoading ? <PageSkeleton /> : null}
       {query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}

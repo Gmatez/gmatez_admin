@@ -27,18 +27,39 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Settings" description="Safe configuration status. Secret values are not included." />
-      <p className="text-sm">Environment {data.environment} · API {data.version} · Host share {formatBps(data.creatorShareBps)}</p>
-      <ul className="space-y-2">
-        {providers.map(([label, provider]) => (
-          <li key={label} className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-sm dark:border-stone-800">
-            <span>{label} · mode {provider.mode}</span>
-            <span className="flex items-center gap-2">
-              <StatusBadge value={provider.status} />
-              <span className="text-xs text-stone-500">{provider.verification}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <h2 className="text-lg font-semibold">General</h2>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Environment</dt>
+            <dd className="mt-1 text-sm font-semibold">{data.environment}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">API</dt>
+            <dd className="mt-1 text-sm font-semibold">{data.version}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Host share</dt>
+            <dd className="mt-1 text-sm font-semibold">{formatBps(data.creatorShareBps)}</dd>
+          </div>
+        </dl>
+      </section>
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+          <h2 className="text-lg font-semibold">Providers</h2>
+        </div>
+        <ul>
+          {providers.map(([label, provider]) => (
+            <li key={label} className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-4 text-sm first:border-t-0 dark:border-slate-800">
+              <span className="font-medium text-slate-800 dark:text-slate-100">{label} · mode {provider.mode}</span>
+              <span className="flex items-center gap-2">
+                <StatusBadge value={provider.status} />
+                <span className="text-xs text-slate-500">{provider.verification}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

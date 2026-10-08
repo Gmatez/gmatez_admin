@@ -11,6 +11,8 @@ import { DataTable } from '@/components/tables/data-table';
 import { StatusBadge } from '@/components/status/status-badge';
 import { PageHeader, Pagination } from '@/components/shared/page';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/shared/states';
+import { Button } from '@/components/ui/button';
+import { DateFilter } from '@/components/shared/filter-bar';
 import { Input, Select } from '@/components/ui/fields';
 
 const CALL_STATUSES = ['INITIATED','RINGING','ACCEPTED','CONNECTING','CONNECTED','REJECTED','TIMEOUT','CANCELLED','FAILED','ENDED'];
@@ -37,8 +39,8 @@ export default function CallsPage() {
   return (
     <div>
       <PageHeader title="Calls" description="Operational call list. Settlement status is derived by the backend from the call lifecycle." />
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Input aria-label="Search calls" defaultValue={params.get('q') ?? ''} placeholder="Name or id" onBlur={(e) => setParams({ q: e.target.value || null }, true)} />
+      <div className="filter-bar">
+        <Input className="filter-search" aria-label="Search calls" defaultValue={params.get('q') ?? ''} placeholder="Name or id" onBlur={(e) => setParams({ q: e.target.value || null }, true)} />
         <Select aria-label="Call status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>
           <option value="">All statuses</option>
           {CALL_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
@@ -54,12 +56,26 @@ export default function CallsPage() {
           <option value="SETTLED">Settled</option>
           <option value="NOT_APPLICABLE">Not applicable</option>
         </Select>
-        <Input aria-label="From" type="date" value={params.get('from') ?? ''} onChange={(e) => setParams({ from: e.target.value || null }, true)} />
-        <Input aria-label="To" type="date" value={params.get('to') ?? ''} onChange={(e) => setParams({ to: e.target.value || null }, true)} />
+        <DateFilter label="From" aria-label="From" value={params.get('from') ?? ''} onChange={(e) => setParams({ from: e.target.value || null }, true)} />
+        <DateFilter label="To" aria-label="To" value={params.get('to') ?? ''} onChange={(e) => setParams({ to: e.target.value || null }, true)} />
       </div>
       {query.isLoading ? <PageSkeleton /> : null}
       {query.error ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : null}
-      {query.data?.items.length === 0 ? <EmptyState title="No calls" body="No calls match these filters." /> : null}
+      {query.data?.items.length === 0 ? (
+        <EmptyState
+          title="No calls found"
+          body="There are no calls matching your current filters."
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setParams({ status: null, callType: null, settlement: null, q: null, from: null, to: null, userId: null, hostId: null }, true)}
+            >
+              Clear filters
+            </Button>
+          }
+        />
+      ) : null}
       {query.data && query.data.items.length > 0 ? (
         <>
           <DataTable

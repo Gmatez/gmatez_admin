@@ -65,20 +65,20 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
         <StatusBadge value={record.callType} />
       </div>
       <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <h2 className="font-semibold">Caller</h2>
           <p className="text-sm">{record.caller.profile?.displayName}</p>
           <p className="text-sm">{record.caller.phone ?? 'No phone'}</p>
-          <Link className="text-sm text-teal-800 underline" href={`/users/${record.callerId}`}>Open user</Link>
+          <Link className="text-sm font-medium text-blue-600 underline" href={`/users/${record.callerId}`}>Open user</Link>
         </article>
-        <article className="rounded-lg border border-stone-200 p-4 dark:border-stone-800">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <h2 className="font-semibold">Host</h2>
           <p className="text-sm">{record.callee.profile?.displayName}</p>
           <p className="text-sm">{record.callee.phone ?? 'No phone'}</p>
-          <Link className="text-sm text-teal-800 underline" href={`/hosts/${record.calleeId}`}>Open host</Link>
+          <Link className="text-sm font-medium text-blue-600 underline" href={`/hosts/${record.calleeId}`}>Open host</Link>
         </article>
       </section>
-      <section className="rounded-lg border border-stone-200 p-4 text-sm dark:border-stone-800">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="font-semibold">Billing</h2>
         <p>Rate {formatMoney(record.ratePerMinuteCents)} / min</p>
         <p>Hold {formatMoney(record.heldAmountCents)}</p>
@@ -89,18 +89,18 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
         <p>End reason {record.endReason ?? '—'}</p>
         {record.refund ? <p>Refund {formatMoney(record.refund.amountCents)} at {formatWhen(record.refund.createdAt)}</p> : null}
       </section>
-      <section className="rounded-lg border border-stone-200 p-4 text-sm dark:border-stone-800">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="font-semibold">RTC</h2>
         <p>Provider {record.rtc.provider}</p>
         <p>Channel {record.rtc.channelName}</p>
         <p>Session {record.providerSessionId}</p>
         <p>Caller heartbeat {formatWhen(record.callerHeartbeatAt)}</p>
         <p>Host heartbeat {formatWhen(record.calleeHeartbeatAt)}</p>
-        <p className="text-stone-500">RTC tokens and provider certificates are not available in this view.</p>
+        <p className="text-slate-500">RTC tokens and provider certificates are not available in this view.</p>
       </section>
       <section>
         <h2 className="mb-2 font-semibold">Timeline</h2>
-        <ol className="space-y-2 border-l border-stone-300 pl-4 text-sm dark:border-stone-700">
+        <ol className="space-y-2 border-l-2 border-blue-200 pl-4 text-sm dark:border-blue-900">
           <li>{formatWhen(record.createdAt)} · Record created · {record.status === 'INITIATED' ? 'INITIATED' : 'created'}</li>
           {record.events.map((event) => (
             <li key={event.id}>
@@ -113,7 +113,7 @@ export default function CallDetailPage({ params }: { params: Promise<{ id: strin
           {record.settlementAppliedAt ? <li>{formatWhen(record.settlementAppliedAt)} · Settlement applied</li> : null}
         </ol>
       </section>
-      <p className="text-sm text-stone-500">There is no admin force-end endpoint. Active calls are observed here and refreshed every 10 seconds.</p>
+      <p className="text-sm text-slate-500">There is no admin force-end endpoint. Active calls are observed here and refreshed every 10 seconds.</p>
       <ConfirmDialog
         open={open}
         title="Refund this call"
