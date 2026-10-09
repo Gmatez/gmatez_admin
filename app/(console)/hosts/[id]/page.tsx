@@ -18,6 +18,19 @@ import { Input, Label, Textarea } from '@/components/ui/fields';
 
 const VERIFICATION = ['NOT_REQUIRED', 'PENDING', 'VERIFIED', 'REJECTED'] as const;
 
+function verificationAction(value: string) {
+  switch (value) {
+    case 'VERIFIED':
+      return 'Verify documents';
+    case 'REJECTED':
+      return 'Reject documents';
+    case 'PENDING':
+      return 'Mark documents pending';
+    default:
+      return 'Skip document review';
+  }
+}
+
 export default function HostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const client = useQueryClient();
@@ -29,6 +42,14 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
   const [note, setNote] = useState('');
   const [internalNote, setInternalNote] = useState('');
   const [verification, setVerification] = useState<string | null>(null);
+  const agreementsMutation = useMutation({
+    mutationFn: () => apiSend(`/admin/hosts/${id}/agreements`, 'POST'),
+    onSuccess: () => {
+      toast.success('Required agreements recorded');
+      void client.invalidateQueries({ queryKey: ['host', id] });
+    },
+    onError: (error) => toast.error(errorText(error)),
+  });
 
   const statusMutation = useMutation({
     mutationFn: (input: { status: HostStatus; reason: string }) =>
@@ -113,6 +134,9 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
         <p className="mt-2 text-xs text-slate-500">
           Required: {(record.completeness?.requiredAgreements ?? []).map((item) => `${item.agreementType} ${item.version}`).join(', ') || '—'}
         </p>
+        <Button className="mt-3" variant="secondary" onClick={() => agreementsMutation.mutate()} disabled={agreementsMutation.isPending}>
+          {agreementsMutation.isPending ? 'Saving…' : 'Record required agreements'}
+        </Button>
       </section>
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <h2 className="font-semibold">Review notes</h2>
@@ -137,7 +161,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
           ))}
           {VERIFICATION.filter((value) => value !== record.verificationStatus).map((value) => (
             <Button key={value} variant="secondary" onClick={() => setVerification(value)}>
-              Mark {value.replaceAll('_', ' ').toLowerCase()}
+              {verificationAction(value)}
             </Button>
           ))}
         </div>
