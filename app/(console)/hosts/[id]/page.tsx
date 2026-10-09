@@ -18,6 +18,16 @@ import { Input, Label, Textarea } from '@/components/ui/fields';
 
 const VERIFICATION = ['NOT_REQUIRED', 'PENDING', 'VERIFIED', 'REJECTED'] as const;
 
+const FIELD_LABEL: Record<string, string> = {
+  displayName: 'Display name',
+  bio: 'Bio',
+  languages: 'Speaking languages',
+  avatar: 'Profile photo',
+  callTypes: 'Voice or video calls',
+  pricing: 'Call prices',
+  agreements: 'Agreements',
+};
+
 function verificationAction(value: string) {
   switch (value) {
     case 'VERIFIED':
@@ -30,6 +40,9 @@ function verificationAction(value: string) {
       return 'Skip document review';
   }
 }
+
+const card =
+  'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950';
 
 export default function HostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -88,87 +101,140 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
   if (!record) return null;
   const transitions = allowedHostTransitions(record.status);
   const missing = record.completeness?.missingFields ?? [];
+  const percent = record.completeness?.percentage ?? 0;
+  const name = record.user.profile?.displayName ?? 'Host';
   return (
     <div className="space-y-6">
       <PageHeader
-        title={record.user.profile?.displayName ?? 'Host'}
-        description={`${record.user.phone ?? 'No phone'} · ${record.user.email}`}
+        title={name}
+        description="Review the profile, documents, and application before you approve or reject."
       />
-      <div className="flex flex-wrap gap-2">
-        <StatusBadge value={record.status} />
-        <StatusBadge value={record.availability} />
-        <StatusBadge value={record.verificationStatus} />
-        <span className="text-sm text-slate-500">Operating as {record.status === 'ACTIVE' ? 'Host' : 'User'}</span>
-      </div>
-      <HostDocuments id={id} record={record} />
-      <HostEditor id={id} record={record} />
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <h2 className="font-semibold">Applicant</h2>
-          <p className="mt-2 text-sm">Account {record.user.status}</p>
-          <p className="text-sm">Bio: {record.applicationBio || record.user.profile?.bio || '—'}</p>
-          <p className="text-sm">Languages: {record.languages.join(', ') || '—'}</p>
-          <p className="text-sm">
-            Voice {formatMoney(record.voiceRatePerMinuteCents)} / min · Video {formatMoney(record.videoRatePerMinuteCents)} / min
+
+      <section className={`${card} flex flex-col gap-5 lg:flex-row lg:items-center`}>
+        <img
+          src={record.user.profile?.avatarUrl || `/api/proxy/admin/hosts/${id}/avatar`}
+          alt=""
+          className="h-20 w-20 rounded-2xl object-cover ring-4 ring-slate-100 dark:ring-slate-800"
+          onError={(event) => {
+            event.currentTarget.src = '';
+            event.currentTarget.classList.add('bg-slate-100');
+          }}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-semibold">{name}</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {record.user.phone ?? 'No phone'} · {record.user.email}
           </p>
-          <p className="text-sm">Voice {record.voiceEnabled ? 'enabled' : 'off'} · Video {record.videoEnabled ? 'enabled' : 'off'}</p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-          <h2 className="font-semibold">Completeness {record.completeness?.percentage ?? 0}%</h2>
-          <p className="mt-2 text-sm">{record.completeness?.isComplete ? 'Ready for approval.' : 'Missing fields block approval.'}</p>
-          <ul className="mt-2 list-disc pl-5 text-sm">
-            {missing.length === 0 ? <li>No missing fields</li> : missing.map((field) => <li key={field}>{field}</li>)}
-          </ul>
-        </article>
-      </section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <h2 className="font-semibold">Agreements</h2>
-        {record.agreementAcceptances.length === 0 ? <p className="mt-2 text-sm">None accepted.</p> : null}
-        <ul className="mt-2 space-y-1 text-sm">
-          {record.agreementAcceptances.map((item) => (
-            <li key={`${item.agreementType}-${item.version}`}>
-              {item.agreementType} {item.version} · {formatWhen(item.acceptedAt)}
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs text-slate-500">
-          Required: {(record.completeness?.requiredAgreements ?? []).map((item) => `${item.agreementType} ${item.version}`).join(', ') || '—'}
-        </p>
-        <Button className="mt-3" variant="secondary" onClick={() => agreementsMutation.mutate()} disabled={agreementsMutation.isPending}>
-          {agreementsMutation.isPending ? 'Saving…' : 'Record required agreements'}
-        </Button>
-      </section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <h2 className="font-semibold">Review notes</h2>
-        <p className="mt-2 text-sm">Applicant-facing: {record.reviewNote ?? '—'}</p>
-        <p className="text-sm">Internal: {record.internalNote ?? '—'}</p>
-        <p className="text-sm">Reviewed {formatWhen(record.reviewedAt)}</p>
-        <div className="mt-3 space-y-2">
-          <Label htmlFor="host-note">Note for this action</Label>
-          <Textarea id="host-note" value={note} onChange={(event) => setNote(event.target.value)} />
-          <Label htmlFor="internal-note">Internal note</Label>
-          <Textarea id="internal-note" value={internalNote} onChange={(event) => setInternalNote(event.target.value)} />
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <StatusBadge value={record.status} />
+            <StatusBadge value={record.availability} />
+            <StatusBadge value={record.verificationStatus} />
+            <span className="text-sm text-slate-500">
+              {record.status === 'ACTIVE' ? 'Approved host' : 'Still a caller until approved'}
+            </span>
+          </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {transitions.map((status) => (
-            <Button
-              key={status}
-              variant={status === 'REJECTED' || status === 'SUSPENDED' ? 'danger' : 'primary'}
-              onClick={() => setNextStatus(status)}
-            >
-              {hostActionLabel(status)}
-            </Button>
-          ))}
-          {VERIFICATION.filter((value) => value !== record.verificationStatus).map((value) => (
-            <Button key={value} variant="secondary" onClick={() => setVerification(value)}>
-              {verificationAction(value)}
-            </Button>
-          ))}
+        <div className="w-full lg:w-56">
+          <div className="flex items-baseline justify-between text-sm">
+            <span className="font-medium">Profile complete</span>
+            <span className="font-semibold">{percent}%</span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div className="h-full rounded-full bg-brand-600" style={{ width: `${percent}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            {record.completeness?.isComplete
+              ? 'Nothing is blocking approval.'
+              : missing.map((field) => FIELD_LABEL[field] ?? field).join(', ')}
+          </p>
         </div>
-        <p className="mt-3 text-xs text-slate-500">
-          Allowed from {record.status}: {transitions.join(', ') || 'none'}. The API rejects any other transition.
-        </p>
       </section>
+
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+        <div className="space-y-6">
+          <HostDocuments id={id} record={record} />
+          <section className={card}>
+            <h2 className="font-semibold">Application</h2>
+            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Fact label="Bio" value={record.applicationBio || record.user.profile?.bio || 'Not added'} />
+              <Fact label="Speaking languages" value={record.languages.join(', ') || 'Not added'} />
+              <Fact label="Interests" value={record.interests.join(', ') || 'Not added'} />
+              <Fact
+                label="Calls"
+                value={`${record.voiceEnabled ? 'Voice on' : 'Voice off'} · ${record.videoEnabled ? 'Video on' : 'Video off'}`}
+              />
+              <Fact label="Voice price" value={`${formatMoney(record.voiceRatePerMinuteCents, 'INR')} / min`} />
+              <Fact label="Video price" value={`${formatMoney(record.videoRatePerMinuteCents, 'INR')} / min`} />
+              <Fact label="Account" value={record.user.status} />
+              <Fact label="Submitted" value={formatWhen(record.submittedAt)} />
+            </dl>
+          </section>
+          <section className={card}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-semibold">Agreements</h2>
+              <Button variant="secondary" onClick={() => agreementsMutation.mutate()} disabled={agreementsMutation.isPending}>
+                {agreementsMutation.isPending ? 'Saving…' : 'Record required agreements'}
+              </Button>
+            </div>
+            {record.agreementAcceptances.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-500">No agreements recorded yet.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100 text-sm dark:divide-slate-800">
+                {record.agreementAcceptances.map((item) => (
+                  <li key={`${item.agreementType}-${item.version}`} className="flex justify-between gap-3 py-2">
+                    <span>{item.agreementType.replaceAll('_', ' ')} {item.version}</span>
+                    <span className="text-slate-500">{formatWhen(item.acceptedAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <HostEditor id={id} record={record} />
+        </div>
+
+        <aside className={`${card} xl:sticky xl:top-4`}>
+          <h2 className="font-semibold">Review</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            The applicant sees the note you send with a status change. The internal note stays in admin.
+          </p>
+          <p className="mt-3 text-sm">Applicant note: {record.reviewNote ?? 'None'}</p>
+          <p className="text-sm">Internal note: {record.internalNote ?? 'None'}</p>
+          <p className="text-sm text-slate-500">Last reviewed {formatWhen(record.reviewedAt)}</p>
+          <div className="mt-4 space-y-3">
+            <div>
+              <Label htmlFor="host-note">Note the applicant can see</Label>
+              <Textarea id="host-note" value={note} onChange={(event) => setNote(event.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="internal-note">Internal note</Label>
+              <Textarea id="internal-note" value={internalNote} onChange={(event) => setInternalNote(event.target.value)} />
+            </div>
+          </div>
+          <div className="mt-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Application</p>
+            {transitions.length === 0 ? <p className="text-sm text-slate-500">No status change is allowed.</p> : null}
+            {transitions.map((status) => (
+              <Button
+                key={status}
+                className="w-full"
+                variant={status === 'REJECTED' || status === 'SUSPENDED' ? 'danger' : 'primary'}
+                onClick={() => setNextStatus(status)}
+              >
+                {hostActionLabel(status)}
+              </Button>
+            ))}
+          </div>
+          <div className="mt-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Documents</p>
+            {VERIFICATION.filter((value) => value !== record.verificationStatus).map((value) => (
+              <Button key={value} className="w-full" variant="secondary" onClick={() => setVerification(value)}>
+                {verificationAction(value)}
+              </Button>
+            ))}
+          </div>
+        </aside>
+      </div>
+
       <ConfirmDialog
         open={nextStatus !== null}
         title={nextStatus ? hostActionLabel(nextStatus) : 'Update host'}
@@ -192,7 +258,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
       <ConfirmDialog
         open={verification !== null}
         title="Update verification"
-        description="Manual verification only. An external KYC provider is not connected."
+        description="This only records your manual document decision."
         confirmLabel="Save verification"
         pending={verifyMutation.isPending}
         onOpenChange={(open) => {
@@ -206,19 +272,27 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
   );
 }
 
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className="mt-1 text-sm">{value}</dd>
+    </div>
+  );
+}
+
 function HostDocuments({ id, record }: { id: string; record: HostRecord }) {
   const client = useQueryClient();
   const [proofType, setProofType] = useState(record.idProofType ?? 'AADHAAR');
   const [last4, setLast4] = useState(record.idProofLast4 ?? '');
   const [pending, setPending] = useState<'avatar' | 'proof' | null>(null);
-  const avatar = record.user.profile?.avatarUrl;
 
   async function upload(kind: 'avatar' | 'id-proof', file: File) {
     const dataBase64 = await readBase64(file);
     setPending(kind === 'avatar' ? 'avatar' : 'proof');
     try {
       await apiSend(`/admin/hosts/${id}/${kind}`, 'POST', {
-        mime: file.type,
+        mime: file.type || 'image/jpeg',
         dataBase64,
         ...(kind === 'id-proof' ? { idProofType: proofType, idProofLast4: last4 } : {}),
       });
@@ -232,40 +306,50 @@ function HostDocuments({ id, record }: { id: string; record: HostRecord }) {
   }
 
   return (
-    <section className="grid gap-4 lg:grid-cols-2">
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <h2 className="font-semibold">Profile</h2>
-        <p className="mt-2 text-sm">{record.user.profile?.displayName ?? '—'} · {record.user.phone ?? 'No phone'} · {record.user.email}</p>
-        <p className="text-sm">Gender {record.user.profile?.gender ?? '—'} · {record.user.profile?.country ?? 'No location'}</p>
-        {avatar ? <img src={avatar} alt="" className="mt-3 h-16 w-16 rounded-full object-cover" /> : <p className="mt-3 text-sm text-slate-500">No public avatar URL.</p>}
-        <img src={`/api/proxy/admin/hosts/${id}/avatar`} alt="" className="mt-3 h-16 w-16 rounded-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
-        <Label htmlFor="avatar-file">Replace profile image</Label>
-        <Input id="avatar-file" type="file" accept="image/jpeg,image/png,image/webp" disabled={pending !== null} onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void upload('avatar', file);
-        }} />
-      </article>
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <h2 className="font-semibold">Identity documents</h2>
-        <p className="mt-2 text-sm">{record.idProofType ?? 'None'} {record.identityCardNumber ? `· ${record.identityCardNumber}` : record.idProofLast4 ? `· ending ${record.idProofLast4}` : ''}</p>
-        <p className="text-sm">Manual review <StatusBadge value={record.verificationStatus} /> {record.idProofUpdatedAt ? `· updated ${formatWhen(record.idProofUpdatedAt)}` : ''}</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <DocumentPreview id={id} kind="identity-front" label="Front" ready={Boolean(record.identityFrontMime)} />
-          <DocumentPreview id={id} kind="identity-back" label="Back" ready={Boolean(record.identityBackMime)} />
-          <DocumentPreview id={id} kind="profile-image" label="Profile" ready={Boolean(record.profileImageMime)} />
+    <section className={card}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Documents</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {record.idProofType ?? 'No document type'}{' '}
+            {record.identityCardNumber
+              ? `· ${record.identityCardNumber}`
+              : record.idProofLast4
+                ? `· ending ${record.idProofLast4}`
+                : ''}
+          </p>
         </div>
-        <div className="mt-3 grid gap-2">
-          <Label htmlFor="proof-type">ID proof type</Label>
+        <StatusBadge value={record.verificationStatus} />
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <DocumentPreview id={id} kind="identity-front" label="Card front" ready={Boolean(record.identityFrontMime)} />
+        <DocumentPreview id={id} kind="identity-back" label="Card back" ready={Boolean(record.identityBackMime)} />
+        <DocumentPreview id={id} kind="profile-image" label="Profile photo" ready={Boolean(record.profileImageMime)} />
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="proof-type">Document type</Label>
           <Input id="proof-type" value={proofType} onChange={(event) => setProofType(event.target.value)} />
+        </div>
+        <div>
           <Label htmlFor="proof-last4">Last 4 digits</Label>
           <Input id="proof-last4" value={last4} onChange={(event) => setLast4(event.target.value)} maxLength={4} />
-          <Label htmlFor="proof-file">Upload or replace ID proof</Label>
+        </div>
+        <div>
+          <Label htmlFor="proof-file">Replace ID proof</Label>
           <Input id="proof-file" type="file" accept="image/jpeg,image/png,image/webp" disabled={pending !== null} onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) void upload('id-proof', file);
           }} />
         </div>
-      </article>
+        <div>
+          <Label htmlFor="avatar-file">Replace profile photo</Label>
+          <Input id="avatar-file" type="file" accept="image/jpeg,image/png,image/webp" disabled={pending !== null} onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void upload('avatar', file);
+          }} />
+        </div>
+      </div>
     </section>
   );
 }
@@ -281,17 +365,17 @@ function DocumentPreview({
   label: string;
   ready: boolean;
 }) {
-  if (!ready) {
-    return <p className="text-sm text-slate-500">{label}: not uploaded</p>;
-  }
+  const src = `/api/proxy/admin/hosts/${id}/documents/${kind}`;
   return (
-    <figure>
-      <img
-        src={`/api/proxy/admin/hosts/${id}/documents/${kind}`}
-        alt={label}
-        className="max-h-40 w-full rounded-lg border border-slate-200 object-contain"
-      />
-      <figcaption className="mt-1 text-xs text-slate-500">{label}</figcaption>
+    <figure className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+      {ready ? (
+        <a href={src} target="_blank" rel="noreferrer">
+          <img src={src} alt={label} className="h-44 w-full object-cover" />
+        </a>
+      ) : (
+        <div className="flex h-44 items-center justify-center text-sm text-slate-400">Not uploaded</div>
+      )}
+      <figcaption className="px-3 py-2 text-sm font-medium">{label}</figcaption>
     </figure>
   );
 }
@@ -328,9 +412,9 @@ function HostEditor({ id, record }: { id: string; record: HostRecord }) {
     onError: (error) => toast.error(errorText(error)),
   });
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <h2 className="font-semibold">Edit application</h2>
-      <p className="mt-1 text-sm text-slate-500">Uploaded documents stay on file. Saving here corrects the profile an admin reviews. Verification stays manual.</p>
+    <section className={card}>
+      <h2 className="font-semibold">Correct this application</h2>
+      <p className="mt-1 text-sm text-slate-500">Use this when the host typed something wrong. Documents stay on file.</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div>
           <Label htmlFor="host-name">Display name</Label>
@@ -345,11 +429,11 @@ function HostEditor({ id, record }: { id: string; record: HostRecord }) {
           <Textarea id="host-bio" value={bio} onChange={(event) => setBio(event.target.value)} />
         </div>
         <div>
-          <Label htmlFor="host-languages">Languages (comma separated)</Label>
+          <Label htmlFor="host-languages">Languages, separated by commas</Label>
           <Input id="host-languages" value={languages} onChange={(event) => setLanguages(event.target.value)} />
         </div>
         <div>
-          <Label htmlFor="host-interests">Interests (comma separated)</Label>
+          <Label htmlFor="host-interests">Interests, separated by commas</Label>
           <Input id="host-interests" value={interests} onChange={(event) => setInterests(event.target.value)} />
         </div>
         <div>
@@ -358,25 +442,25 @@ function HostEditor({ id, record }: { id: string; record: HostRecord }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="voice-rate">Voice rate (paise)</Label>
+            <Label htmlFor="voice-rate">Voice price (paise)</Label>
             <Input id="voice-rate" value={voiceRate} onChange={(event) => setVoiceRate(event.target.value)} />
           </div>
           <div>
-            <Label htmlFor="video-rate">Video rate (paise)</Label>
+            <Label htmlFor="video-rate">Video price (paise)</Label>
             <Input id="video-rate" value={videoRate} onChange={(event) => setVideoRate(event.target.value)} />
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={voice} onChange={(event) => setVoice(event.target.checked)} />
-          Voice calls
+          Offer voice calls
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={video} onChange={(event) => setVideo(event.target.checked)} />
-          Video calls
+          Offer video calls
         </label>
       </div>
       <Button className="mt-4" onClick={() => save.mutate()} disabled={save.isPending}>
-        {save.isPending ? 'Saving…' : 'Save host details'}
+        {save.isPending ? 'Saving…' : 'Save corrections'}
       </Button>
     </section>
   );
