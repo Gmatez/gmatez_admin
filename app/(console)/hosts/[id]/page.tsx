@@ -80,6 +80,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
         <span className="text-sm text-slate-500">Operating as {record.status === 'ACTIVE' ? 'Host' : 'User'}</span>
       </div>
       <HostDocuments id={id} record={record} />
+      <HostEditor id={id} record={record} />
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <h2 className="font-semibold">Applicant</h2>
@@ -221,10 +222,14 @@ function HostDocuments({ id, record }: { id: string; record: HostRecord }) {
         }} />
       </article>
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <h2 className="font-semibold">ID proof</h2>
-        <p className="mt-2 text-sm">{record.idProofType ?? 'None'} {record.idProofLast4 ? `· ending ${record.idProofLast4}` : ''}</p>
-        <p className="text-sm">Verification <StatusBadge value={record.verificationStatus} /> {record.idProofUpdatedAt ? `· updated ${formatWhen(record.idProofUpdatedAt)}` : ''}</p>
-        {record.idProofMime ? <img src={`/api/proxy/admin/hosts/${id}/id-proof`} alt="ID proof" className="mt-3 max-h-40 rounded-lg border border-slate-200" /> : null}
+        <h2 className="font-semibold">Identity documents</h2>
+        <p className="mt-2 text-sm">{record.idProofType ?? 'None'} {record.identityCardNumber ? `· ${record.identityCardNumber}` : record.idProofLast4 ? `· ending ${record.idProofLast4}` : ''}</p>
+        <p className="text-sm">Manual review <StatusBadge value={record.verificationStatus} /> {record.idProofUpdatedAt ? `· updated ${formatWhen(record.idProofUpdatedAt)}` : ''}</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <DocumentPreview id={id} kind="identity-front" label="Front" ready={Boolean(record.identityFrontMime)} />
+          <DocumentPreview id={id} kind="identity-back" label="Back" ready={Boolean(record.identityBackMime)} />
+          <DocumentPreview id={id} kind="profile-image" label="Profile" ready={Boolean(record.profileImageMime)} />
+        </div>
         <div className="mt-3 grid gap-2">
           <Label htmlFor="proof-type">ID proof type</Label>
           <Input id="proof-type" value={proofType} onChange={(event) => setProofType(event.target.value)} />
@@ -237,6 +242,118 @@ function HostDocuments({ id, record }: { id: string; record: HostRecord }) {
           }} />
         </div>
       </article>
+    </section>
+  );
+}
+
+function DocumentPreview({
+  id,
+  kind,
+  label,
+  ready,
+}: {
+  id: string;
+  kind: string;
+  label: string;
+  ready: boolean;
+}) {
+  if (!ready) {
+    return <p className="text-sm text-slate-500">{label}: not uploaded</p>;
+  }
+  return (
+    <figure>
+      <img
+        src={`/api/proxy/admin/hosts/${id}/documents/${kind}`}
+        alt={label}
+        className="max-h-40 w-full rounded-lg border border-slate-200 object-contain"
+      />
+      <figcaption className="mt-1 text-xs text-slate-500">{label}</figcaption>
+    </figure>
+  );
+}
+
+function HostEditor({ id, record }: { id: string; record: HostRecord }) {
+  const client = useQueryClient();
+  const [displayName, setDisplayName] = useState(record.user.profile?.displayName ?? '');
+  const [bio, setBio] = useState(record.applicationBio || record.user.profile?.bio || '');
+  const [languages, setLanguages] = useState(record.languages.join(', '));
+  const [interests, setInterests] = useState(record.interests.join(', '));
+  const [voiceRate, setVoiceRate] = useState(String(record.voiceRatePerMinuteCents));
+  const [videoRate, setVideoRate] = useState(String(record.videoRatePerMinuteCents));
+  const [identity, setIdentity] = useState(record.identityCardNumber ?? '');
+  const [proofType, setProofType] = useState(record.idProofType ?? 'AADHAAR');
+  const [voice, setVoice] = useState(record.voiceEnabled);
+  const [video, setVideo] = useState(record.videoEnabled);
+  const save = useMutation({
+    mutationFn: () =>
+      apiSend(`/admin/hosts/${id}/details`, 'PATCH', {
+        displayName,
+        bio,
+        languages: languages.split(',').map((item) => item.trim()).filter(Boolean),
+        interests: interests.split(',').map((item) => item.trim()).filter(Boolean),
+        voiceEnabled: voice,
+        videoEnabled: video,
+        voiceRatePerMinuteCents: Number(voiceRate),
+        videoRatePerMinuteCents: Number(videoRate),
+        ...(identity.trim() ? { identityCardNumber: identity.trim(), idProofType: proofType } : { idProofType: proofType }),
+      }),
+    onSuccess: () => {
+      toast.success('Host details saved');
+      void client.invalidateQueries({ queryKey: ['host', id] });
+    },
+    onError: (error) => toast.error(errorText(error)),
+  });
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <h2 className="font-semibold">Edit application</h2>
+      <p className="mt-1 text-sm text-slate-500">Uploaded documents stay on file. Saving here corrects the profile an admin reviews. Verification stays manual.</p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div>
+          <Label htmlFor="host-name">Display name</Label>
+          <Input id="host-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="host-proof-type">Document type</Label>
+          <Input id="host-proof-type" value={proofType} onChange={(event) => setProofType(event.target.value)} />
+        </div>
+        <div className="md:col-span-2">
+          <Label htmlFor="host-bio">Bio</Label>
+          <Textarea id="host-bio" value={bio} onChange={(event) => setBio(event.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="host-languages">Languages (comma separated)</Label>
+          <Input id="host-languages" value={languages} onChange={(event) => setLanguages(event.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="host-interests">Interests (comma separated)</Label>
+          <Input id="host-interests" value={interests} onChange={(event) => setInterests(event.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="host-identity">Identity number</Label>
+          <Input id="host-identity" value={identity} onChange={(event) => setIdentity(event.target.value)} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="voice-rate">Voice rate (paise)</Label>
+            <Input id="voice-rate" value={voiceRate} onChange={(event) => setVoiceRate(event.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="video-rate">Video rate (paise)</Label>
+            <Input id="video-rate" value={videoRate} onChange={(event) => setVideoRate(event.target.value)} />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={voice} onChange={(event) => setVoice(event.target.checked)} />
+          Voice calls
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={video} onChange={(event) => setVideo(event.target.checked)} />
+          Video calls
+        </label>
+      </div>
+      <Button className="mt-4" onClick={() => save.mutate()} disabled={save.isPending}>
+        {save.isPending ? 'Saving…' : 'Save host details'}
+      </Button>
     </section>
   );
 }

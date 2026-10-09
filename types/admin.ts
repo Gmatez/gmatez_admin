@@ -146,6 +146,10 @@ export type HostRecord = {
   idProofLast4?: string | null;
   idProofMime?: string | null;
   idProofUpdatedAt?: string | null;
+  identityCardNumber?: string | null;
+  identityFrontMime?: string | null;
+  identityBackMime?: string | null;
+  profileImageMime?: string | null;
   createdAt: string;
   updatedAt: string;
   user: {
