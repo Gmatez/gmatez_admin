@@ -15,6 +15,7 @@ type Pricing = {
   userRatePerMinuteCents: number;
   hostEarningPerMinuteCents: number;
   hostShareBps: number;
+  userVideoRatePerMinuteCents: number | null;
 } | null;
 
 export default function PricingPage() {
@@ -25,6 +26,7 @@ export default function PricingPage() {
   });
   const [userRate, setUserRate] = useState('');
   const [hostRate, setHostRate] = useState('');
+  const [videoRate, setVideoRate] = useState('');
   const save = useMutation({
     mutationFn: () => {
       const userRatePerMinuteCents = majorToMinor(userRate);
@@ -32,12 +34,21 @@ export default function PricingPage() {
       if (userRatePerMinuteCents == null || hostEarningPerMinuteCents == null) {
         throw new Error('Enter both amounts, for example 7.00 and 4.00');
       }
-      return apiSend('/admin/pricing', 'PATCH', { userRatePerMinuteCents, hostEarningPerMinuteCents });
+      const userVideoRatePerMinuteCents = videoRate.trim() === '' ? undefined : majorToMinor(videoRate);
+      if (videoRate.trim() !== '' && userVideoRatePerMinuteCents == null) {
+        throw new Error('Video rate must be a valid amount, e.g. 10.00, or left blank');
+      }
+      return apiSend('/admin/pricing', 'PATCH', {
+        userRatePerMinuteCents,
+        hostEarningPerMinuteCents,
+        ...(userVideoRatePerMinuteCents != null ? { userVideoRatePerMinuteCents } : {}),
+      });
     },
     onSuccess: () => {
       toast.success('Pricing saved for new calls');
       setUserRate('');
       setHostRate('');
+      setVideoRate('');
       void client.invalidateQueries({ queryKey: ['pricing'] });
     },
     onError: (error) => toast.error(errorText(error)),
@@ -55,11 +66,16 @@ export default function PricingPage() {
         description="Sets the per-minute user charge and host earning for new calls. Calls already started keep the rate stored on them."
       />
       {current ? (
-        <div className="gm-metrics grid gap-4 sm:grid-cols-3">
-          <RateCard label="User pays" value={formatMoney(current.userRatePerMinuteCents)} hint="per minute" />
+        <div className="gm-metrics grid gap-4 sm:grid-cols-4">
+          <RateCard label="User pays (voice)" value={formatMoney(current.userRatePerMinuteCents)} hint="per minute" />
+          <RateCard
+            label="User pays (video)"
+            value={current.userVideoRatePerMinuteCents != null ? formatMoney(current.userVideoRatePerMinuteCents) : '—'}
+            hint={current.userVideoRatePerMinuteCents != null ? 'per minute' : "falls back to each host's own video rate"}
+          />
           <RateCard label="Host earns" value={formatMoney(current.hostEarningPerMinuteCents)} hint={`${current.hostShareBps} bps`} />
           <RateCard
-            label="Platform keeps"
+            label="Platform keeps (voice)"
             value={formatMoney(current.userRatePerMinuteCents - current.hostEarningPerMinuteCents)}
             hint="per minute"
           />
@@ -73,22 +89,32 @@ export default function PricingPage() {
         <h2 className="font-semibold text-slate-900 dark:text-slate-50">Update the rule</h2>
         <p className="mt-1 text-sm text-slate-500">Applies to new calls only. Calls already started keep their saved rate.</p>
         <form
-          className="mt-4 grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          className="mt-4 grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-5"
           onSubmit={(event) => {
             event.preventDefault();
             save.mutate();
           }}
         >
           <div>
-            <Label htmlFor="user-rate">User charge / min</Label>
+            <Label htmlFor="user-rate">User charge / min (voice)</Label>
             <Input id="user-rate" className="mt-1" value={userRate} onChange={(event) => setUserRate(event.target.value)} placeholder="7.00" />
           </div>
           <div>
             <Label htmlFor="host-rate">Host earning / min</Label>
             <Input id="host-rate" className="mt-1" value={hostRate} onChange={(event) => setHostRate(event.target.value)} placeholder="4.00" />
           </div>
+          <div>
+            <Label htmlFor="video-rate">User charge / min (video, optional)</Label>
+            <Input
+              id="video-rate"
+              className="mt-1"
+              value={videoRate}
+              onChange={(event) => setVideoRate(event.target.value)}
+              placeholder="Leave blank to use each host's video rate"
+            />
+          </div>
           <div className="rounded-xl bg-brand-50 px-3 py-2 dark:bg-slate-900">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Platform / min</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Platform / min (voice)</p>
             <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-50">
               {platform != null && platform >= 0 ? formatMoney(platform) : '—'}
             </p>
