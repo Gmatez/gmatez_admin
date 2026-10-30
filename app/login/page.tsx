@@ -46,6 +46,7 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-800 via-brand-600 to-brand-700 px-4">
       <form
+        method="post"
         onSubmit={form.handleSubmit(onSubmit)}
         className="w-full max-w-md rounded-2xl border border-white/40 bg-white p-7 shadow-xl dark:border-slate-700 dark:bg-slate-950"
         noValidate
