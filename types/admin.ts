@@ -33,6 +33,9 @@ export type DashboardResponse = {
     byAvailability: Record<string, number>;
     online: number;
   };
+  admins: {
+    total: number;
+  };
   calls: {
     total: number;
     byStatus: Record<string, number>;
@@ -460,5 +463,8 @@ export type HostSupervisor = {
 export type StaffMember = {
   id: string;
   email: string;
+  status: string;
+  createdAt: string;
   staffRole: { id: string; name: string } | null;
+  profile: { displayName: string } | null;
 };

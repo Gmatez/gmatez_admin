@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { Banknote, Headset, Phone, Users } from 'lucide-react';
+import { Banknote, Headset, Phone, ShieldCheck, Users } from 'lucide-react';
 import { apiGet } from '@/lib/api/client';
 import { formatWhen } from '@/lib/format';
 import { formatBps, formatMoney } from '@/lib/money';
@@ -62,7 +62,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" description="Overview of your Gmatez platform" />
-      <section className="gm-metrics grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="gm-metrics grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <Metric
           icon={<Users />}
           label="Total users"
@@ -78,6 +78,12 @@ export default function DashboardPage() {
           label="Total hosts"
           value={String(data.hosts.total)}
           hint={`${data.hosts.byStatus.PENDING_REVIEW ?? 0} pending review`}
+        />
+        <Metric
+          icon={<ShieldCheck />}
+          label="Staff accounts"
+          value={String(data.admins.total)}
+          hint="Internal admin/staff logins"
         />
         <Metric
           icon={<Phone />}

@@ -25,6 +25,7 @@ import {
   SlidersHorizontal,
   Shield,
   Sun,
+  UserCog,
   Users,
   Wallet,
   X,
@@ -50,6 +51,7 @@ const GROUPS: Array<{ label: string | null; items: NavItem[] }> = [
     items: [
       { href: '/users', label: 'Users', icon: Users },
       { href: '/hosts', label: 'Hosts', icon: Headset },
+      { href: '/staff', label: 'Staff', icon: UserCog },
       { href: '/calls', label: 'Calls', icon: Phone },
     ],
   },

@@ -47,7 +47,7 @@ export default function UsersPage() {
     <div>
       <PageHeader
         title="Users"
-        description="Accounts on the calling platform. Balances are the wallet cache maintained with the ledger."
+        description="Caller accounts only — hosts live on the Hosts page, staff on the Staff page. Balances are the wallet cache maintained with the ledger."
       />
       <div className="filter-bar">
         <Input
@@ -123,16 +123,6 @@ export default function UsersPage() {
               { key: 'name', header: 'Name', cell: (row) => <PersonCell name={row.profile?.displayName ?? '—'} /> },
               { key: 'phone', header: 'Phone', cell: (row) => row.phone ?? '—' },
               { key: 'status', header: 'Account', cell: (row) => <StatusBadge value={row.status} /> },
-              {
-                key: 'operating',
-                header: 'Operating as',
-                cell: (row) => (row.hostProfile?.status === 'ACTIVE' ? 'Host' : 'User'),
-              },
-              {
-                key: 'host',
-                header: 'Host',
-                cell: (row) => <StatusBadge value={row.hostProfile?.status ?? 'NOT_HOST'} />,
-              },
               {
                 key: 'wallet',
                 header: 'Available',
