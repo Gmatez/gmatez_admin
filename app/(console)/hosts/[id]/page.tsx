@@ -154,6 +154,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
         <div className="space-y-6">
           <HostDocuments id={id} record={record} />
           <SupervisorSection id={id} />
+          <EarningsSection record={record} />
           <section className={card}>
             <h2 className="font-semibold">Application</h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -338,6 +339,58 @@ function SupervisorSection({ id }: { id: string }) {
           </Button>
         </div>
       )}
+    </section>
+  );
+}
+
+function EarningsSection({ record }: { record: HostRecord }) {
+  return (
+    <section className={card}>
+      <h2 className="font-semibold">Earnings and activity</h2>
+      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Fact
+          label="Wallet balance"
+          value={record.wallet ? formatMoney(record.wallet.availableBalanceCents, record.wallet.currency) : 'No wallet'}
+        />
+        <Fact
+          label="Held balance"
+          value={record.wallet ? formatMoney(record.wallet.heldBalanceCents, record.wallet.currency) : '—'}
+        />
+      </dl>
+      <div className="mt-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent calls</p>
+        {record.recentCalls.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">No calls yet.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-slate-100 text-sm dark:divide-slate-800">
+            {record.recentCalls.map((callRow) => (
+              <li key={callRow.id} className="flex items-center justify-between gap-3 py-2">
+                <span>
+                  {callRow.callType} · <StatusBadge value={callRow.status} />
+                </span>
+                <span className="text-slate-500">{formatWhen(callRow.createdAt)}</span>
+                <span className="font-medium">{formatMoney(callRow.billedAmountCents, 'INR')}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="mt-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent payouts</p>
+        {record.recentPayouts.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">No payouts yet.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-slate-100 text-sm dark:divide-slate-800">
+            {record.recentPayouts.map((payout) => (
+              <li key={payout.id} className="flex items-center justify-between gap-3 py-2">
+                <StatusBadge value={payout.status} />
+                <span className="text-slate-500">{formatWhen(payout.createdAt)}</span>
+                <span className="font-medium">{formatMoney(payout.amountCents, 'INR')}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

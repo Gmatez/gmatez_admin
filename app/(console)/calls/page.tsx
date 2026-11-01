@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiGet, type PageResult } from '@/lib/api/client';
 import { formatWhen } from '@/lib/format';
@@ -38,7 +39,15 @@ export default function CallsPage() {
   });
   return (
     <div>
-      <PageHeader title="Calls" description="Operational call list. Settlement status is derived by the backend from the call lifecycle." />
+      <PageHeader
+        title="Calls"
+        description="Operational call list. Settlement status is derived by the backend from the call lifecycle."
+        actions={
+          <Link href="/calls/active">
+            <Button variant="secondary">Live now</Button>
+          </Link>
+        }
+      />
       <div className="filter-bar">
         <Input className="filter-search" aria-label="Search calls" defaultValue={params.get('q') ?? ''} placeholder="Name or id" onBlur={(e) => setParams({ q: e.target.value || null }, true)} />
         <Select aria-label="Call status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>

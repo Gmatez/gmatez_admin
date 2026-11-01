@@ -166,6 +166,21 @@ export type HostRecord = {
     acceptedAt: string;
   }>;
   completeness?: HostCompleteness;
+  wallet: { currency: string; availableBalanceCents: number; heldBalanceCents: number } | null;
+  recentCalls: Array<{
+    id: string;
+    status: string;
+    callType: string;
+    billedAmountCents: number;
+    creatorShareBps: number | null;
+    createdAt: string;
+  }>;
+  recentPayouts: Array<{
+    id: string;
+    status: string;
+    amountCents: number;
+    createdAt: string;
+  }>;
 };
 
 export type CallRow = {
