@@ -10,10 +10,12 @@ export function assertMinorUnits(amountMinor: number): void {
 }
 
 /**
- * Formats integer minor units. 10050 USD is $100.50, never $10050.
- * The currency code comes from the backend. No FX conversion is applied.
+ * Formats integer minor units. 10050 INR (paise) is ₹100.50, never ₹10050.
+ * The platform is INR-only — default to it so a call site that forgets to
+ * pass a currency never silently renders a $ sign. Pass an explicit
+ * currency when the API response actually carries one.
  */
-export function formatMoney(amountMinor: number, currency = 'USD'): string {
+export function formatMoney(amountMinor: number, currency = 'INR'): string {
   assertMinorUnits(amountMinor);
   const negative = amountMinor < 0;
   const absolute = Math.abs(amountMinor);
