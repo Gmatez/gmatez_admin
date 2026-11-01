@@ -95,6 +95,7 @@ export type AdminUser = {
   phone: string | null;
   role: string;
   status: string;
+  staffRoleId?: string | null;
   createdAt: string;
   profile: {
     displayName: string;
@@ -408,4 +409,41 @@ export type SearchResponse = {
     createdAt: string;
   }>;
   reports: Array<{ id: string; status: string; reason: string; createdAt: string }>;
+};
+
+export const PERMISSIONS = [
+  'staff.manage',
+  'hosts.manage',
+  'payouts.manage',
+  'payments.view',
+  'reports.manage',
+  'banners.manage',
+  'users.manage',
+  'pricing.manage',
+  'calls.view',
+  'audit.view',
+] as const;
+
+export type Permission = (typeof PERMISSIONS)[number];
+
+export type StaffRole = {
+  id: string;
+  name: string;
+  permissions: Permission[];
+  createdAt: string;
+  updatedAt: string;
+  _count?: { members: number };
+};
+
+export type HostSupervisor = {
+  hostUserId: string;
+  staffUserId: string;
+  assignedAt: string;
+  staff: { id: string; email: string };
+};
+
+export type StaffMember = {
+  id: string;
+  email: string;
+  staffRole: { id: string; name: string } | null;
 };

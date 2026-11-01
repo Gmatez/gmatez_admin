@@ -9,14 +9,14 @@ import { errorText } from '@/lib/errors';
 import { formatActivity, formatWhen } from '@/lib/format';
 import { formatMoney } from '@/lib/money';
 import { createIdempotencyKey } from '@/lib/utils';
-import type { AdminUser, Reconciliation } from '@/types/admin';
+import type { AdminUser, Reconciliation, StaffRole } from '@/types/admin';
 import { ConfirmDialog } from '@/components/dialogs/confirm-dialog';
 import { PageHeader } from '@/components/shared/page';
 import { ErrorState, PageSkeleton } from '@/components/shared/states';
 import { StatusBadge } from '@/components/status/status-badge';
 import { DataTable } from '@/components/tables/data-table';
 import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/fields';
+import { Input, Label, Select } from '@/components/ui/fields';
 import { majorToMinor } from '@/lib/money';
 
 type UserDetail = AdminUser & {
@@ -150,6 +150,7 @@ function UserDetailView({ id }: { id: string }) {
         <Info label="Last active" value={formatActivity(record.profile?.lastActiveAt)} />
         <Info label="Operating as" value={record.hostProfile?.status === 'ACTIVE' ? 'Host' : 'User'} />
       </section>
+      {record.role === 'ADMIN' ? <StaffRoleSection id={id} record={record} /> : null}
       {record.hostProfile ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <h2 className="font-semibold">Host profile</h2>
@@ -264,6 +265,52 @@ function UserDetailView({ id }: { id: string }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function StaffRoleSection({ id, record }: { id: string; record: UserDetail }) {
+  const client = useQueryClient();
+  const roles = useQuery({
+    queryKey: ['staff-roles'],
+    queryFn: () => apiGet<StaffRole[]>('/admin/staff-roles'),
+  });
+  const [selected, setSelected] = useState(record.staffRoleId ?? '');
+  const save = useMutation({
+    mutationFn: () =>
+      apiSend(`/admin/users/${id}/staff-role`, 'PATCH', {
+        staffRoleId: selected || null,
+      }),
+    onSuccess: () => {
+      toast.success('Staff role updated');
+      void client.invalidateQueries({ queryKey: ['user', id] });
+    },
+    onError: (error) => toast.error(errorText(error)),
+  });
+  const dirty = selected !== (record.staffRoleId ?? '');
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+      <h2 className="font-semibold">Staff role</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        No role assigned means unrestricted admin access. Assigning one scopes this account to that role&apos;s permissions.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Select
+          aria-label="Staff role"
+          value={selected}
+          onChange={(event) => setSelected(event.target.value)}
+        >
+          <option value="">Unrestricted (no role)</option>
+          {roles.data?.map((role) => (
+            <option key={role.id} value={role.id}>
+              {role.name}
+            </option>
+          ))}
+        </Select>
+        <Button onClick={() => save.mutate()} disabled={save.isPending || !dirty}>
+          {save.isPending ? 'Saving…' : 'Save'}
+        </Button>
+      </div>
+    </section>
   );
 }
 

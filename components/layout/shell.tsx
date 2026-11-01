@@ -21,6 +21,7 @@ import {
   ScrollText,
   Search,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
   Shield,
   Sun,
@@ -74,6 +75,7 @@ const GROUPS: Array<{ label: string | null; items: NavItem[] }> = [
   {
     label: 'System',
     items: [
+      { href: '/staff-roles', label: 'Staff roles', icon: ShieldCheck },
       { href: '/audit-logs', label: 'Audit Logs', icon: ScrollText },
       { href: '/settings', label: 'Settings', icon: Settings },
       { href: '/health', label: 'Health', icon: Activity },

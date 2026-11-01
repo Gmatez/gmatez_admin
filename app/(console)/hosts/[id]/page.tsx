@@ -8,13 +8,13 @@ import { errorText } from '@/lib/errors';
 import { formatWhen } from '@/lib/format';
 import { formatMoney } from '@/lib/money';
 import { allowedHostTransitions, hostActionLabel, type HostStatus } from '@/lib/hosts/transitions';
-import type { HostRecord } from '@/types/admin';
+import type { HostRecord, HostSupervisor, StaffMember } from '@/types/admin';
 import { ConfirmDialog } from '@/components/dialogs/confirm-dialog';
 import { PageHeader } from '@/components/shared/page';
 import { ErrorState, PageSkeleton } from '@/components/shared/states';
 import { StatusBadge } from '@/components/status/status-badge';
 import { Button } from '@/components/ui/button';
-import { Input, Label, Textarea } from '@/components/ui/fields';
+import { Input, Label, Select, Textarea } from '@/components/ui/fields';
 
 const VERIFICATION = ['NOT_REQUIRED', 'PENDING', 'VERIFIED', 'REJECTED'] as const;
 
@@ -153,6 +153,7 @@ export default function HostDetailPage({ params }: { params: Promise<{ id: strin
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
         <div className="space-y-6">
           <HostDocuments id={id} record={record} />
+          <SupervisorSection id={id} />
           <section className={card}>
             <h2 className="font-semibold">Application</h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -278,6 +279,66 @@ function Fact({ label, value }: { label: string; value: string }) {
       <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
       <dd className="mt-1 text-sm">{value}</dd>
     </div>
+  );
+}
+
+function SupervisorSection({ id }: { id: string }) {
+  const client = useQueryClient();
+  const supervisor = useQuery({
+    queryKey: ['host-supervisor', id],
+    queryFn: () => apiGet<HostSupervisor | null>(`/admin/hosts/${id}/supervisor`),
+  });
+  const staff = useQuery({
+    queryKey: ['staff'],
+    queryFn: () => apiGet<StaffMember[]>('/admin/staff'),
+  });
+  const [selected, setSelected] = useState('');
+  const assign = useMutation({
+    mutationFn: () =>
+      apiSend(`/admin/hosts/${id}/supervisor`, 'POST', { staffUserId: selected }),
+    onSuccess: () => {
+      toast.success('Supervisor assigned');
+      void client.invalidateQueries({ queryKey: ['host-supervisor', id] });
+    },
+    onError: (error) => toast.error(errorText(error)),
+  });
+  const remove = useMutation({
+    mutationFn: () => apiSend(`/admin/hosts/${id}/supervisor`, 'DELETE'),
+    onSuccess: () => {
+      toast.success('Supervisor removed');
+      void client.invalidateQueries({ queryKey: ['host-supervisor', id] });
+    },
+    onError: (error) => toast.error(errorText(error)),
+  });
+  return (
+    <section className={card}>
+      <h2 className="font-semibold">Supervised by</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Which staff member this host reports to for support and escalation.
+      </p>
+      {supervisor.data ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm">{supervisor.data.staff.email}</span>
+          <Button variant="secondary" size="sm" onClick={() => remove.mutate()} disabled={remove.isPending}>
+            {remove.isPending ? 'Removing…' : 'Remove'}
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Select aria-label="Assign supervisor" value={selected} onChange={(event) => setSelected(event.target.value)}>
+            <option value="">Choose a staff member</option>
+            {staff.data?.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.email}
+              </option>
+            ))}
+          </Select>
+          <Button onClick={() => assign.mutate()} disabled={assign.isPending || !selected}>
+            {assign.isPending ? 'Assigning…' : 'Assign'}
+          </Button>
+        </div>
+      )}
+    </section>
   );
 }
 
