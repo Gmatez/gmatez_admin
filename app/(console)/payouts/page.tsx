@@ -24,7 +24,7 @@ export default function PayoutsPage() {
     <div>
       <PageHeader
         title="Payouts"
-        description="Host withdrawals debit the internal wallet only. RazorpayX is CONFIG_REQUIRED, so this screen cannot mark a payout completed."
+        description="Host withdrawals debit the internal wallet only. RazorpayX is CONFIG_REQUIRED — mark a payout completed only after sending the bank/UPI transfer yourself."
       />
       <div className="filter-bar">
       <Select aria-label="Payout status" value={params.get('status') ?? ''} onChange={(e) => setParams({ status: e.target.value || null }, true)}>

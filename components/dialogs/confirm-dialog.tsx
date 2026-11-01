@@ -12,6 +12,8 @@ type ConfirmDialogProps = {
   confirmLabel: string;
   destructive?: boolean;
   requireReason?: boolean;
+  /** Label for the required text field. Defaults to "Reason". */
+  reasonLabel?: string;
   pending?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (reason: string) => void;
@@ -24,6 +26,7 @@ export function ConfirmDialog({
   confirmLabel,
   destructive,
   requireReason,
+  reasonLabel = 'Reason',
   pending,
   onOpenChange,
   onConfirm,
@@ -49,7 +52,7 @@ export function ConfirmDialog({
           </Dialog.Description>
           {requireReason ? (
             <div className="mt-4 space-y-2">
-              <Label htmlFor="confirm-reason">Reason</Label>
+              <Label htmlFor="confirm-reason">{reasonLabel}</Label>
               <Textarea
                 id="confirm-reason"
                 value={reason}

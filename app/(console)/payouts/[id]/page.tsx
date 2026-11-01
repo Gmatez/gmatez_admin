@@ -22,9 +22,9 @@ type PayoutDetail = PayoutRow & {
 };
 
 const NEXT: Record<string, string[]> = {
-  REQUESTED: ['PROCESSING', 'REJECTED', 'FAILED'],
-  PROCESSING: ['REJECTED', 'FAILED'],
-  FAILED: ['PROCESSING', 'REJECTED'],
+  REQUESTED: ['PROCESSING', 'COMPLETED', 'REJECTED', 'FAILED'],
+  PROCESSING: ['COMPLETED', 'REJECTED', 'FAILED'],
+  FAILED: ['PROCESSING', 'COMPLETED', 'REJECTED'],
 };
 
 export default function PayoutDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -39,7 +39,9 @@ export default function PayoutDetailPage({ params }: { params: Promise<{ id: str
     mutationFn: (input: { status: string; reason: string }) =>
       apiSend(`/admin/payouts/${id}`, 'PATCH', {
         status: input.status,
-        failureReason: input.reason || undefined,
+        ...(input.status === 'COMPLETED'
+          ? { providerTransferId: input.reason || undefined }
+          : { failureReason: input.reason || undefined }),
       }),
     onSuccess: () => {
       toast.success('Payout status updated');
@@ -66,7 +68,8 @@ export default function PayoutDetailPage({ params }: { params: Promise<{ id: str
       <p>Requested {formatWhen(record.createdAt)} · Processed {formatWhen(record.processedAt)}</p>
       <p>Failure {record.failureReason ?? '—'}</p>
       <p className="text-amber-800">
-        {record.rules.payoutRail ?? 'RAZORPAYX'} is {record.rules.payoutRailStatus}. No bank or UPI transfer is sent.
+        {record.rules.payoutRail ?? 'RAZORPAYX'} is {record.rules.payoutRailStatus}. No bank or UPI transfer is sent
+        automatically — marking a payout COMPLETED requires a transfer reference for a payment made manually.
         External transfer status: {record.rules.externalTransferStatus ?? 'NOT_TRANSFERRED'}.
       </p>
       </section>
@@ -88,10 +91,15 @@ export default function PayoutDetailPage({ params }: { params: Promise<{ id: str
       <ConfirmDialog
         open={next !== null}
         title={`Mark payout ${next ?? ''}`}
-        description="Rejecting or failing a payout credits the amount back to the host wallet. This screen cannot mark a payout completed, because no external transfer has been made."
+        description={
+          next === 'COMPLETED'
+            ? 'Only confirm this after you have already sent the bank/UPI transfer yourself — no transfer is sent automatically. Enter its reference as proof.'
+            : 'Rejecting or failing a payout credits the amount back to the host wallet.'
+        }
         confirmLabel="Confirm"
         destructive={next === 'REJECTED' || next === 'FAILED'}
-        requireReason={next === 'REJECTED' || next === 'FAILED'}
+        requireReason={next === 'REJECTED' || next === 'FAILED' || next === 'COMPLETED'}
+        reasonLabel={next === 'COMPLETED' ? 'Transfer reference (UTR / UPI ref)' : 'Reason'}
         pending={mutation.isPending}
         onOpenChange={(open) => { if (!open) setNext(null); }}
         onConfirm={(reason) => { if (next) mutation.mutate({ status: next, reason }); }}
